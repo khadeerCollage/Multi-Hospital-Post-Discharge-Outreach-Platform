@@ -164,7 +164,11 @@ async def create_patient(
 
     # 2. Create Initial Encounter for Post-Discharge Outreach
     discharge_dt = patient_in.discharge_date or datetime.utcnow()
-    admission_dt = discharge_dt - timedelta(days=2)
+    if discharge_dt and hasattr(discharge_dt, "tzinfo") and discharge_dt.tzinfo is not None:
+        discharge_dt = discharge_dt.replace(tzinfo=None)
+    admission_dt = discharge_dt - timedelta(days=2) if discharge_dt else datetime.utcnow() - timedelta(days=2)
+    if admission_dt and hasattr(admission_dt, "tzinfo") and admission_dt.tzinfo is not None:
+        admission_dt = admission_dt.replace(tzinfo=None)
     proc_name = patient_in.procedure_name or patient_in.primary_diagnosis or "General Surgical Care"
     doctor_name = patient_in.attending_physician or "Staff Attending, MD"
 
