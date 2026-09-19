@@ -12,7 +12,6 @@
 
 ---
 
-
 ## 🧪 Evaluator & Testing Quick Guide
 
 > **For Hackathon Judges, Technical Evaluators & Reviewers**  
