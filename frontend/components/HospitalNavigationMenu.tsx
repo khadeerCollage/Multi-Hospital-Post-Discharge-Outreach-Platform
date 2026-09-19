@@ -132,7 +132,7 @@ export function HospitalNavigationMenu() {
             className={navigationMenuTriggerStyle()}
             render={
               <a
-                href="http://localhost:8000/docs"
+                href={`${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '')}/docs`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1.5 text-xs"
