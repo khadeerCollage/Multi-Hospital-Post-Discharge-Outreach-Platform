@@ -16,6 +16,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
+import { clinicalToast } from '@/lib/toast';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -122,6 +123,7 @@ export default function UsersPage() {
       });
 
       setShowAdd(false);
+      clinicalToast.success(`User ${addForm.full_name || addForm.email} created successfully.`);
       setAddForm({
         full_name: '',
         email: '',
@@ -131,7 +133,7 @@ export default function UsersPage() {
       });
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to create user');
+      clinicalToast.error(err.message || 'Failed to create user');
     } finally {
       setCreating(false);
     }
@@ -173,10 +175,11 @@ export default function UsersPage() {
         body: JSON.stringify(payload),
       });
 
+      clinicalToast.success(`User ${editForm.full_name || editForm.email} updated.`);
       setEditingUser(null);
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to update user');
+      clinicalToast.error(err.message || 'Failed to update user');
     } finally {
       setUpdating(false);
     }
@@ -185,15 +188,22 @@ export default function UsersPage() {
   // --- DELETE USER ---
   const handleDelete = async () => {
     if (!deletingUser) return;
+    const userToDelete = deletingUser;
     setIsDeleting(true);
+
+    // Optimistic removal
+    setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+    setDeletingUser(null);
+
     try {
-      await fetchApi(`/api/v1/users/${deletingUser.id}`, {
+      await fetchApi(`/api/v1/users/${userToDelete.id}`, {
         method: 'DELETE',
       });
-      setDeletingUser(null);
+      clinicalToast.info(`User ${userToDelete.full_name || userToDelete.email} removed.`);
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete user');
+      clinicalToast.error(err.message || 'Failed to delete user');
+      await loadData();
     } finally {
       setIsDeleting(false);
     }

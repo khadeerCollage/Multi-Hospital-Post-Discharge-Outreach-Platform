@@ -12,6 +12,7 @@ import {
   HoverCardTrigger,
 } from '@/components/ui/hover-card';
 import Loader from '@/components/ui/loader';
+import { clinicalToast } from '@/lib/toast';
 
 interface Protocol {
   id: string;
@@ -170,15 +171,26 @@ export default function ProtocolsPage() {
             red_flag_symptoms: cleanRedFlags,
           })
         });
-        setSuccessMsg(`Protocol "${formName}" updated! AI voice intake script and escalation rules re-compiled.`);
       }
       closeModal();
+      clinicalToast.success(isNewProtocol ? 'New clinical protocol created!' : `Protocol "${formName}" updated.`);
       await fetchProtocols();
-      setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err: any) {
+      clinicalToast.error(err.message || 'Failed to save protocol');
       setError(err.message || 'Failed to save protocol');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteProtocol = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete clinical protocol "${name}"?`)) return;
+    try {
+      await fetchApi(`/api/v1/protocols/${id}`, { method: 'DELETE' });
+      setProtocols(prev => prev.filter(p => p.id !== id));
+      clinicalToast.info(`Protocol "${name}" deleted.`);
+    } catch (err: any) {
+      clinicalToast.error(err.message || 'Failed to delete protocol');
     }
   };
 
@@ -286,6 +298,14 @@ export default function ProtocolsPage() {
                 >
                   <Edit3 className="h-3.5 w-3.5" />
                   Edit Protocol
+                </button>
+                <button
+                  onClick={() => handleDeleteProtocol(p.id, p.name)}
+                  title="Delete Protocol"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
                 </button>
               </div>
             </div>

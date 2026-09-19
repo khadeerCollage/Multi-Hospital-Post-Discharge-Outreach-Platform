@@ -322,21 +322,57 @@ async def delete_patient(
     mrn = patient.mrn
     name = f"{patient.first_name} {patient.last_name}"
 
-    # Cascading deletion of all dependent records
-    # 1. Escalations
-    await db.execute(delete(Escalation).where(Escalation.patient_id == patient_id))
-    # 2. CallRecords
-    await db.execute(delete(CallRecord).where(CallRecord.patient_id == patient_id))
-    # 3. OutreachTasks
-    await db.execute(delete(OutreachTask).where(OutreachTask.patient_id == patient_id))
-    # 4. Observations
-    await db.execute(delete(Observation).where(Observation.patient_id == patient_id))
-    # 5. CarePlans
-    await db.execute(delete(CarePlan).where(CarePlan.patient_id == patient_id))
-    # 6. Communications
-    await db.execute(delete(Communication).where(Communication.patient_id == patient_id))
-    # 7. Encounters
+    # Query all dependent encounter IDs for this patient
+    enc_q = await db.execute(select(Encounter.id).where(Encounter.patient_id == patient_id))
+    enc_ids = enc_q.scalars().all()
+
+    # Query all dependent outreach task IDs for this patient
+    task_q = await db.execute(select(OutreachTask.id).where(OutreachTask.patient_id == patient_id))
+    task_ids = task_q.scalars().all()
+
+    # Query all call record IDs for this patient or associated tasks
+    call_filter = CallRecord.patient_id == patient_id
+    if task_ids:
+        call_filter = or_(call_filter, CallRecord.task_id.in_(task_ids))
+    call_q = await db.execute(select(CallRecord.id).where(call_filter))
+    call_ids = call_q.scalars().all()
+
+    # 1. Cascading delete: Escalations (by patient_id or call_record_id)
+    esc_filter = Escalation.patient_id == patient_id
+    if call_ids:
+        esc_filter = or_(esc_filter, Escalation.call_record_id.in_(call_ids))
+    await db.execute(delete(Escalation).where(esc_filter))
+
+    # 2. Cascading delete: CallRecords (by patient_id or task_id)
+    await db.execute(delete(CallRecord).where(call_filter))
+
+    # 3. Cascading delete: OutreachTasks (by patient_id or encounter_id)
+    task_del_filter = OutreachTask.patient_id == patient_id
+    if enc_ids:
+        task_del_filter = or_(task_del_filter, OutreachTask.encounter_id.in_(enc_ids))
+    await db.execute(delete(OutreachTask).where(task_del_filter))
+
+    # 4. Cascading delete: Observations (by patient_id or encounter_id)
+    obs_filter = Observation.patient_id == patient_id
+    if enc_ids:
+        obs_filter = or_(obs_filter, Observation.encounter_id.in_(enc_ids))
+    await db.execute(delete(Observation).where(obs_filter))
+
+    # 5. Cascading delete: CarePlans (by patient_id or encounter_id)
+    cp_filter = CarePlan.patient_id == patient_id
+    if enc_ids:
+        cp_filter = or_(cp_filter, CarePlan.encounter_id.in_(enc_ids))
+    await db.execute(delete(CarePlan).where(cp_filter))
+
+    # 6. Cascading delete: Communications (by patient_id or encounter_id)
+    comm_filter = Communication.patient_id == patient_id
+    if enc_ids:
+        comm_filter = or_(comm_filter, Communication.encounter_id.in_(enc_ids))
+    await db.execute(delete(Communication).where(comm_filter))
+
+    # 7. Cascading delete: Encounters (by patient_id)
     await db.execute(delete(Encounter).where(Encounter.patient_id == patient_id))
+
     # 8. Patient record
     await db.execute(delete(Patient).where(Patient.id == patient_id))
 

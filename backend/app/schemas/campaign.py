@@ -6,10 +6,11 @@ from pydantic import BaseModel
 class CampaignCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    tenant_id: Optional[uuid.UUID] = None
     target_risk_levels: List[str] = ["critical", "high", "moderate", "low", "routine"]
     condition_filter: Optional[str] = None
-    follow_up_window_start: datetime
-    follow_up_window_end: datetime
+    follow_up_window_start: Optional[datetime] = None
+    follow_up_window_end: Optional[datetime] = None
     calling_hours_start: str = "09:00"
     calling_hours_end: str = "18:00"
     max_concurrent_calls: int = 10

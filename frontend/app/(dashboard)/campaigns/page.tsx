@@ -4,6 +4,7 @@ import { Plus, Play, Pause, Eye } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
 import Link from 'next/link';
 import { CampaignsEmptyState } from '@/components/EmptyState';
+import { clinicalToast } from '@/lib/toast';
 
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -30,15 +31,18 @@ export default function Campaigns() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
+    setError('');
     try {
       await fetchApi('/api/v1/campaigns', {
         method: 'POST',
         body: JSON.stringify(newCampaign),
       });
       setShowCreate(false);
+      clinicalToast.success(`Campaign "${newCampaign.name}" created successfully.`);
       setNewCampaign({ name: '', description: '' });
       await fetchCampaigns();
     } catch (err: any) {
+      clinicalToast.error(err.message || 'Failed to create campaign');
       setError(err.message);
     } finally {
       setCreating(false);

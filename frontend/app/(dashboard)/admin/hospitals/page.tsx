@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Building2, Plus, ArrowLeft } from 'lucide-react';
 import { fetchApi } from '@/lib/api';
+import { clinicalToast } from '@/lib/toast';
 import Link from 'next/link';
 
 export default function AdminHospitalsPage() {
@@ -45,6 +46,7 @@ export default function AdminHospitalsPage() {
         body: JSON.stringify(form)
       });
       setShowAdd(false);
+      clinicalToast.success(`Hospital "${form.name}" registered successfully.`);
       setForm({
         name: '', code: '', phone: '', address: '',
         timezone: 'America/New_York', calling_hours_start: '09:00',
@@ -52,7 +54,7 @@ export default function AdminHospitalsPage() {
       });
       loadHospitals();
     } catch (err: any) {
-      alert(err.message || 'Failed to create hospital');
+      clinicalToast.error(err.message || 'Failed to create hospital');
     }
   };
 

@@ -12,6 +12,7 @@ from app.models.campaign import Campaign
 from app.models.patient import Patient
 from app.models.encounter import Encounter
 from app.models.outreach_task import OutreachTask
+from app.models.hospital import Hospital
 from app.services.priority_engine import calculate_priority_score
 from app.services.scheduler import register_campaign, unregister_campaign
 from app.schemas.campaign import CampaignCreate, CampaignUpdate, CampaignResponse, CampaignMetrics
@@ -24,14 +25,30 @@ async def create_campaign(
     db: AsyncSession = Depends(get_db),
     tenant_context: TenantContext = Depends(get_tenant_context)
 ):
-    if not tenant_context.tenant_id:
+    target_tenant_id = tenant_context.tenant_id or campaign_in.tenant_id
+    if not target_tenant_id:
+        h_res = await db.execute(select(Hospital.id).where(Hospital.status == 'active').limit(1))
+        target_tenant_id = h_res.scalar_one_or_none()
+    if not target_tenant_id:
         raise HTTPException(status_code=400, detail="Tenant context required")
-        
-    campaign_data = campaign_in.model_dump()
-    campaign_data["tenant_id"] = tenant_context.tenant_id
+
+    campaign_data = campaign_in.model_dump(exclude_unset=True)
+    campaign_data["tenant_id"] = target_tenant_id
     campaign_data["status"] = "DRAFT"
     campaign_data["created_by"] = tenant_context.user_id
-    
+
+    # Default follow_up windows if omitted
+    now_naive = datetime.utcnow()
+    if not campaign_data.get("follow_up_window_start"):
+        campaign_data["follow_up_window_start"] = now_naive
+    elif campaign_data["follow_up_window_start"].tzinfo:
+        campaign_data["follow_up_window_start"] = campaign_data["follow_up_window_start"].replace(tzinfo=None)
+
+    if not campaign_data.get("follow_up_window_end"):
+        campaign_data["follow_up_window_end"] = now_naive + timedelta(days=3)
+    elif campaign_data["follow_up_window_end"].tzinfo:
+        campaign_data["follow_up_window_end"] = campaign_data["follow_up_window_end"].replace(tzinfo=None)
+
     campaign = Campaign(**campaign_data)
     db.add(campaign)
     await db.commit()

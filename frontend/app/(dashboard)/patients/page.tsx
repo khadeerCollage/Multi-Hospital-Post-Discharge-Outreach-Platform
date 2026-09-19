@@ -295,20 +295,33 @@ export default function Patients() {
   const handleDeleteSubmit = async () => {
     if (!selectedPatient) return;
 
+    const patientToDelete = selectedPatient;
+    const deletedId = patientToDelete.id;
+    const patientName = `${patientToDelete.first_name} ${patientToDelete.last_name}`;
+    const patientMrn = patientToDelete.mrn;
+
     setIsSubmitting(true);
+
+    // 1. Optimistic removal: remove immediately from local state so the table updates with zero lag
+    setPatients(prev => prev.filter(p => p.id !== deletedId));
+    setTotal(prev => Math.max(0, prev - 1));
+    setIsDeleteOpen(false);
+
     try {
-      await fetchApi(`/api/v1/patients/${selectedPatient.id}`, {
+      await fetchApi(`/api/v1/patients/${deletedId}`, {
         method: 'DELETE',
       });
 
-      setIsDeleteOpen(false);
-      clinicalToast.info(`Patient record for ${selectedPatient.first_name} ${selectedPatient.last_name} deleted.`);
-      setSuccessBanner(`Patient record and clinical data for ${selectedPatient.first_name} ${selectedPatient.last_name} deleted.`);
+      clinicalToast.info(`Patient record for ${patientName} (${patientMrn}) deleted.`);
+      setSuccessBanner(`Patient record and clinical data for ${patientName} (${patientMrn}) permanently deleted.`);
       setTimeout(() => setSuccessBanner(null), 5000);
-      fetchPatients();
+      
+      // Re-fetch to synchronize pagination & server state cleanly
+      await fetchPatients();
     } catch (err: any) {
-      clinicalToast.error(`Deletion failed: ${err.message}`);
-      alert(`Deletion failed: ${err.message}`);
+      clinicalToast.error(`Deletion failed: ${err.message || 'Unknown error'}`);
+      // Revert optimistic update on failure by re-fetching
+      await fetchPatients();
     } finally {
       setIsSubmitting(false);
       setSelectedPatient(null);

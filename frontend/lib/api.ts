@@ -36,9 +36,12 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 
   try {
     const res = await fetch(`${API_URL}${endpoint}`, {
+      cache: 'no-store',
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
@@ -54,7 +57,15 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     }
 
     if (!res.ok) {
-      throw new Error(await res.text());
+      const errText = await res.text();
+      let errMsg = errText;
+      try {
+        const parsed = JSON.parse(errText);
+        if (parsed.detail) {
+          errMsg = typeof parsed.detail === 'string' ? parsed.detail : JSON.stringify(parsed.detail);
+        }
+      } catch {}
+      throw new Error(errMsg || `Request failed with status ${res.status}`);
     }
 
     return await res.json();

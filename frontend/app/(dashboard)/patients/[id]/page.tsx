@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Loader from '@/components/ui/loader';
 import { ClinicalRiskHoverCard } from '@/components/HoverCardDemos';
+import { clinicalToast } from '@/lib/toast';
 
 function formatFullDateTime(dtString?: string) {
   if (!dtString) return { dateStr: 'Not recorded', timeStr: '', full: 'N/A', elapsed: '' };
@@ -116,10 +117,12 @@ export default function PatientDetail({ params }: { params: { id: string } }) {
       const updated = await fetchApi(`/api/v1/patients/${params.id}`);
       setPatient(updated);
       setIsEditOpen(false);
+      clinicalToast.success(`Patient record for ${formData.first_name} ${formData.last_name} updated successfully.`);
       setSuccessBanner('Patient record updated successfully.');
       setTimeout(() => setSuccessBanner(null), 5000);
     } catch (err: any) {
       setFormError(err.message || 'Failed to update patient record.');
+      clinicalToast.error(err.message || 'Failed to update patient record.');
     } finally {
       setIsSubmitting(false);
     }
@@ -132,9 +135,11 @@ export default function PatientDetail({ params }: { params: { id: string } }) {
         method: 'DELETE',
       });
       setIsDeleteOpen(false);
+      clinicalToast.info('Patient record permanently deleted.');
       router.push('/patients');
+      router.refresh();
     } catch (err: any) {
-      alert(`Deletion failed: ${err.message}`);
+      clinicalToast.error(`Deletion failed: ${err.message}`);
       setIsSubmitting(false);
     }
   };
