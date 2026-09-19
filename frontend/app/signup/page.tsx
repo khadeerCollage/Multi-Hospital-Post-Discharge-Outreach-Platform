@@ -1,0 +1,276 @@
+'use client';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { fetchApi } from '@/lib/api';
+import { ArrowRight, Lock, Mail, User, Building2, Shield } from 'lucide-react';
+
+export default function SignUp() {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('clinical_reviewer');
+  const [hospitalId, setHospitalId] = useState('');
+  const [hospitals, setHospitals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchApi('/api/v1/hospitals')
+      .then((data: any) => {
+        const list = data?.items || data || [];
+        setHospitals(list);
+        if (list.length > 0) {
+          setHospitalId(list[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const data = await fetchApi('/api/v1/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName,
+          role,
+          tenant_id: hospitalId || undefined,
+        }),
+      });
+
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      const userRole = data.user.role;
+      if (userRole === 'platform_admin') window.location.href = '/admin';
+      else if (userRole === 'hospital_admin') window.location.href = '/dashboard';
+      else if (userRole === 'campaign_manager') window.location.href = '/campaigns';
+      else if (userRole === 'clinical_reviewer') window.location.href = '/escalations';
+      else window.location.href = '/dashboard';
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please check your details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative h-screen w-screen max-h-screen overflow-hidden bg-gradient-to-r from-[#eef7fd] via-[#f5faff] to-[#dbeef8] select-none">
+      {/* 1. Ambient blurred background fill */}
+      <img
+        src="/auth-widescreen.png"
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-105 pointer-events-none"
+      />
+
+      {/* 2. Main Widescreen Artwork (Fit Height, Anchored Left, 100% Full Logo & Stats Visible) */}
+      <div className="absolute inset-0 w-full h-full flex items-center justify-start overflow-hidden pointer-events-none py-2 sm:py-2.5 lg:py-3 pl-2 sm:pl-4 lg:pl-6 pr-0">
+        <img
+          src="/auth-widescreen.png"
+          alt="CareReach - Continuing Care Beyond the Hospital"
+          className="h-full w-auto max-w-none object-contain object-left drop-shadow-md rounded-2xl"
+        />
+      </div>
+
+      {/* 3. Registration Form Overlay - Positioned over the right-side gap */}
+      <div className="relative z-10 h-full w-full flex items-center justify-center lg:justify-end px-4 sm:px-8 lg:px-12 xl:px-20 overflow-y-auto">
+        <div className="w-full max-w-[420px] lg:max-w-[430px] bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/80 p-5 sm:p-6 space-y-3 my-auto">
+          {/* Header */}
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-800 border border-teal-200 mb-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse"></span>
+              CareReach™ Staff Provisioning
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+              Register Staff Account
+            </h1>
+            <p className="text-xs text-gray-500">
+              Create an account for clinical triage, outreach cadences & hospital ops.
+            </p>
+          </div>
+
+          {/* Form */}
+          <form className="space-y-2.5" onSubmit={handleRegister}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-2 font-medium flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-600 flex-shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
+                  Full Name & Credentials
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <User className="h-3.5 w-3.5" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    className="block w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs shadow-2xs bg-white"
+                    placeholder="Dr. Sarah Jenkins, MD"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
+                    Hospital / Facility
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                      <Building2 className="h-3.5 w-3.5" />
+                    </div>
+                    <select
+                      className="block w-full pl-8 pr-2 py-1.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs shadow-2xs bg-white"
+                      value={hospitalId}
+                      onChange={(e) => setHospitalId(e.target.value)}
+                    >
+                      {hospitals.map((h: any) => (
+                        <option key={h.id} value={h.id}>
+                          {h.name}
+                        </option>
+                      ))}
+                      {hospitals.length === 0 && (
+                        <option value="">City General Hospital</option>
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
+                    Clinical Role
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                      <Shield className="h-3.5 w-3.5" />
+                    </div>
+                    <select
+                      className="block w-full pl-8 pr-2 py-1.5 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs shadow-2xs bg-white capitalize"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                    >
+                      <option value="clinical_reviewer">Clinical Reviewer</option>
+                      <option value="campaign_manager">Campaign Manager</option>
+                      <option value="hospital_admin">Hospital Admin</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
+                  Hospital Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <Mail className="h-3.5 w-3.5" />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    autoComplete="email"
+                    className="block w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs shadow-2xs bg-white"
+                    placeholder="s.jenkins@hospital.org"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                      <Lock className="h-3.5 w-3.5" />
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      autoComplete="new-password"
+                      className="block w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs shadow-2xs bg-white"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-700 mb-0.5">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                      <Lock className="h-3.5 w-3.5" />
+                    </div>
+                    <input
+                      type="password"
+                      required
+                      autoComplete="new-password"
+                      className="block w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs shadow-2xs bg-white"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-semibold text-white bg-teal-600 hover:bg-teal-700 active:bg-teal-800 shadow-md shadow-teal-500/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-teal-400 transition-all cursor-pointer mt-1"
+            >
+              {loading ? 'Creating Account...' : 'Complete Registration'}
+              {!loading && <ArrowRight className="h-3.5 w-3.5" />}
+            </button>
+          </form>
+
+          {/* Link back to Login */}
+          <div className="text-center pt-1.5 border-t border-gray-200/80">
+            <p className="text-xs text-gray-500">
+              Already have an active clinical account?{' '}
+              <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700 hover:underline">
+                Sign in to Console
+              </Link>
+            </p>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center text-[10px] text-gray-400 pt-1 border-t border-gray-100">
+            CareReach™ Multi-Hospital Platform • HIPAA-Compliant Outreach
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

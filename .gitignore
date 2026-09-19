@@ -1,0 +1,123 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+.yarn/
+!.yarn/patches/
+!.yarn/plugins/
+!.yarn/releases/
+!.yarn/versions/
+.pnpm-store/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.local
+*.secret
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+secrets/
+
+# Production and build output
+dist/
+build/
+out/
+coverage/
+.next/
+.nuxt/
+.svelte-kit/
+.turbo/
+.vercel/
+.netlify/
+.cache/
+.parcel-cache/
+.vite/
+storybook-static/
+
+# Runtime data and local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+uploads/
+tmp/
+temp/
+
+# Logs and diagnostics
+logs/
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Test and tool artifacts
+.nyc_output/
+.jest/
+playwright-report/
+test-results/
+cypress/screenshots/
+cypress/videos/
+.eslintcache
+.stylelintcache
+
+# Python tooling used by services, scripts, or AI workflows
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+*.egg-info/
+
+# IDE and editor files
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Generated API/client artifacts
+openapi-typescript.config.js
+generated/
+*.generated.*
+
+# Local infrastructure and cloud tooling
+.docker/
+.terraform/
+*.tfstate
+*.tfstate.*
+.serverless/
+.aws-sam/
+
+# Package manager and deployment metadata
+.npm/
+.yarn-integrity
+*.tsbuildinfo
